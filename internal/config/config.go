@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -18,6 +19,20 @@ var Keys = []string{
 	"bucket",
 	"project",
 	"base-url",
+}
+
+// Descriptions explains what each key holds and how it's used.
+var Descriptions = map[string]string{
+	"bucket":   "GCS bucket name. Bare name only — no gs:// prefix, no scheme.",
+	"project":  "GCP project ID that owns the bucket. Informational only — ADC handles auth.",
+	"base-url": "Public URL prefix served by your load balancer. Include the scheme; no trailing slash.",
+}
+
+// Examples are shown in help / list output to make the expected format obvious.
+var Examples = map[string]string{
+	"bucket":   "cdn.runlocal.dev",
+	"project":  "my-gcp-project",
+	"base-url": "https://cdn.runlocal.dev",
 }
 
 func (c *Config) Get(key string) string {
@@ -44,6 +59,46 @@ func (c *Config) Set(key, value string) bool {
 		return false
 	}
 	return true
+}
+
+// Normalize cleans up a value before storing it. Returns the normalized value
+// plus a human-readable note when something was changed, so the caller can echo it.
+func Normalize(key, value string) (string, string) {
+	value = strings.TrimSpace(value)
+	switch key {
+	case "bucket":
+		orig := value
+		value = strings.TrimPrefix(value, "gs://")
+		value = strings.TrimSuffix(value, "/")
+		if value != orig {
+			return value, "stripped gs:// prefix or trailing /"
+		}
+	case "base-url":
+		orig := value
+		value = strings.TrimSuffix(value, "/")
+		if value != orig {
+			return value, "stripped trailing /"
+		}
+	}
+	return value, ""
+}
+
+// Validate returns a non-nil error if the value is unusable for its key.
+func Validate(key, value string) error {
+	if value == "" {
+		return fmt.Errorf("%s cannot be empty", key)
+	}
+	switch key {
+	case "bucket":
+		if strings.Contains(value, "/") {
+			return fmt.Errorf("bucket %q contains a slash — pass the bare name (e.g. %s)", value, Examples["bucket"])
+		}
+	case "base-url":
+		if !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") {
+			return fmt.Errorf("base-url %q is missing a scheme — include http:// or https:// (e.g. %s)", value, Examples["base-url"])
+		}
+	}
+	return nil
 }
 
 func dir() (string, error) {

@@ -77,7 +77,11 @@ pushcdn upload <file> [more-files...]
   -d, --dest string            destination object name or folder (folders end with /)
       --content-type string    override Content-Type (default: inferred from extension)
       --cache-control string   Cache-Control header (default: "public, max-age=3600")
+      --no-progress            disable the per-file progress bar
 ```
+
+Each upload shows a byte-level progress bar on stderr when stdout is a terminal;
+piping the command (or passing `--no-progress`) suppresses it cleanly.
 
 Examples:
 
@@ -92,9 +96,16 @@ pushcdn upload resume.pdf --cache-control "public, max-age=300"
 ### `pushcdn ls`
 
 ```bash
-pushcdn ls            # everything in the bucket
-pushcdn ls brand/     # only objects under "brand/"
+pushcdn ls                       # everything in the bucket
+pushcdn ls brand/                # prefix match — objects under "brand/"
+pushcdn ls '*gorilla*'           # glob — names with "gorilla", no '/'
+pushcdn ls '**gorilla**'         # glob — same, but spans folder boundaries
+pushcdn ls 'logo.???'            # logo.png, logo.svg, …
 ```
+
+Quote glob patterns so your shell doesn't expand them first. The arg is sent to
+GCS as a server-side `matchGlob`, so listings stay efficient even for large
+buckets.
 
 ### `pushcdn rm`
 
@@ -113,11 +124,11 @@ pushcdn url logo.png
 ### `pushcdn config`
 
 ```bash
-pushcdn config list                                  # available keys
+pushcdn config list                                  # keys + descriptions + examples
 pushcdn config show                                  # current values
-pushcdn config set bucket   cdn.runlocal.dev
+pushcdn config set bucket   cdn.runlocal.dev        # bare name; gs:// stripped if present
 pushcdn config set project  my-gcp-project           # optional, informational
-pushcdn config set base-url https://cdn.runlocal.dev
+pushcdn config set base-url https://cdn.runlocal.dev # scheme required; trailing / stripped
 ```
 
 ### `pushcdn version`

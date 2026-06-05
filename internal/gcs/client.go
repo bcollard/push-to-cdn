@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mime"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -31,6 +28,9 @@ func New(ctx context.Context, bucket string) (*Client, error) {
 }
 
 func (c *Client) Close() error { return c.c.Close() }
+
+// Bucket returns the bucket name this client was constructed with.
+func (c *Client) Bucket() string { return c.bucket }
 
 // UploadOpts controls object metadata on upload.
 type UploadOpts struct {
@@ -59,22 +59,6 @@ func (c *Client) Upload(ctx context.Context, src io.Reader, objectName string, o
 	return objectName, nil
 }
 
-// UploadFile is a convenience wrapper that opens path and uploads it,
-// inferring content-type from the extension if opts.ContentType is empty.
-func (c *Client) UploadFile(ctx context.Context, path, objectName string, opts UploadOpts) (string, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	if opts.ContentType == "" {
-		if ct := mime.TypeByExtension(filepath.Ext(path)); ct != "" {
-			opts.ContentType = ct
-		}
-	}
-	return c.Upload(ctx, f, objectName, opts)
-}
-
 // Object describes a single object as listed by List.
 type Object struct {
 	Name    string
@@ -82,9 +66,27 @@ type Object struct {
 	Updated string
 }
 
-// List returns objects whose name starts with prefix.
-func (c *Client) List(ctx context.Context, prefix string) ([]Object, error) {
-	it := c.c.Bucket(c.bucket).Objects(ctx, &storage.Query{Prefix: prefix})
+// ListQuery selects which objects List returns. Exactly one of Prefix or
+// MatchGlob is typically set; both may be empty to list everything.
+//
+// MatchGlob uses Cloud Storage server-side glob syntax:
+//   - "*"  matches any character except "/"
+//   - "**" matches any character including "/"
+//   - "?"  matches exactly one character except "/"
+//   - "[abc]" / "[a-z]" character classes
+//
+// See https://cloud.google.com/storage/docs/json_api/v1/objects/list#parameters
+type ListQuery struct {
+	Prefix    string
+	MatchGlob string
+}
+
+// List returns objects matching q.
+func (c *Client) List(ctx context.Context, q ListQuery) ([]Object, error) {
+	it := c.c.Bucket(c.bucket).Objects(ctx, &storage.Query{
+		Prefix:    q.Prefix,
+		MatchGlob: q.MatchGlob,
+	})
 	var out []Object
 	for {
 		attrs, err := it.Next()
