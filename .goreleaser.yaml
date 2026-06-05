@@ -1,0 +1,65 @@
+version: 2
+
+project_name: pushcdn
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: .
+    binary: pushcdn
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: ["tar.gz"]
+    files:
+      - LICENSE
+      - README.md
+      - src: .third_party_licenses/**/*
+        dst: third_party_licenses
+        strip_parent: true
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+homebrew_casks:
+  - name: push-to-cdn
+    binaries: ["pushcdn"]
+    repository:
+      owner: bcollard
+      name: homebrew-push-to-cdn
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/bcollard/push-to-cdn"
+    description: "Push files to a public Google Cloud Storage bucket fronted by a CDN"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com

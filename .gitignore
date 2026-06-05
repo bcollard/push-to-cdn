@@ -1,0 +1,14 @@
+.envrc
+.claude
+dist/
+pushcdn
+.third_party_licenses/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+!terraform/terraform.tfvars.example
+terraform/.terraform.tfstate.lock.info

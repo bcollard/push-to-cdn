@@ -1,0 +1,5 @@
+project = "your-gcp-project-id"
+# Override these only if you need to:
+# bucket_name = "cdn-runlocal-dev"
+# location    = "EU"
+# region      = "europe-west1"
