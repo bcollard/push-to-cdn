@@ -60,8 +60,8 @@ terraform/                public GCS bucket + IAM allUsers:objectViewer
   `--cache-control` is passed. Cloud CDN honors this.
 
 - **Reference project.** The CLI structure, goreleaser config, and GHA workflows
-  are deliberately parallel to `~/projects/private/keycloak-cli` so changes to
-  conventions can be propagated between the two.
+  are deliberately parallel to [github.com/bcollard/keycloak-cli](https://github.com/bcollard/keycloak-cli)
+  so changes to conventions can be propagated between the two.
 
 ## Common tasks
 
