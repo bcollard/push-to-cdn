@@ -12,3 +12,6 @@ terraform/*.tfstate.*
 terraform/*.tfvars
 !terraform/terraform.tfvars.example
 terraform/.terraform.tfstate.lock.info
+terraform/backend.tf
+!terraform/backend.tf.example
+terraform/*.json

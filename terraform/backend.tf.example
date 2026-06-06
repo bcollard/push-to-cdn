@@ -1,0 +1,18 @@
+# Copy this file to backend.tf (gitignored) to enable a remote state backend.
+# Without this file, Terraform stores state locally in terraform.tfstate.
+#
+#   cp backend.tf.example backend.tf
+#   # edit backend.tf to set bucket and prefix
+#   make tf-init     # or: terraform init
+
+terraform {
+  backend "gcs" {
+    bucket = "your-tf-state-bucket"
+    prefix = "terraform/cdn-runlocal-dev"
+
+    # Optional — only needed if you're not using Application Default
+    # Credentials (`gcloud auth application-default login`). Path is
+    # relative to terraform/.
+    # credentials = "path-to-sa-key.json"
+  }
+}

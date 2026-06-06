@@ -26,7 +26,32 @@ gcloud commands to wire them up.
   the bucket. If you don't want to verify, override `bucket_name` to
   `cdn-runlocal-dev` — the LB can still serve it at `cdn.runlocal.dev`.
 
+## State backend
+
+By default the tracked Terraform has no backend block, so state is stored
+locally in `terraform.tfstate` — fine for trying things out. For a real
+deployment you'll want a remote backend; copy the example and fill it in:
+
+```bash
+cp backend.tf.example backend.tf
+# edit backend.tf to set bucket and prefix (and optionally credentials)
+```
+
+`backend.tf` is gitignored. Anything other than `backend.tf.example` is yours
+to keep private.
+
 ## Usage
+
+From the repo root, the Makefile wraps the common flow:
+
+```bash
+make tf-init        # terraform init (uses backend.tf if present)
+make tf-plan
+make tf-apply
+make tf-destroy     # if you ever need to tear down
+```
+
+Or invoke terraform directly:
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
