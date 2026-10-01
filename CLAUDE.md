@@ -56,6 +56,13 @@ terraform/                public GCS bucket + IAM allUsers:objectViewer
   the bucket level, with `uniform_bucket_level_access = true`. Do not add
   per-object ACLs — they are intentionally disabled.
 
+- **State backend lives in a gitignored `terraform/backend.tf`, not in
+  `versions.tf`.** Declaring a partial `backend "gcs" {}` in tracked Terraform
+  makes `terraform validate` fail with "Missing required argument: bucket" even
+  when `-backend=false` is passed, so we can't keep an empty backend block in CI.
+  Tracked Terraform has no backend reference; `backend.tf.example` is the
+  template, `backend.tf` is the local copy.
+
 - **Cache-Control defaults.** Upload sets `public, max-age=3600` unless
   `--cache-control` is passed. Cloud CDN honors this.
 
