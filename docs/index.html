@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>pushcdn – Upload public assets to a GCS-backed CDN from the command line</title>
+<meta name="description" content="pushcdn is a small Go CLI that uploads public files to a Google Cloud Storage bucket served through Cloud CDN. Upload, list, delete and print URLs.">
+<link rel="canonical" href="https://bcollard.github.io/push-to-cdn/">
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="pushcdn – Upload public assets to a GCS-backed CDN">
+<meta property="og:description" content="A small Go CLI to publish logos, resumes and shared files to a public Google Cloud Storage bucket behind Cloud CDN.">
+<meta property="og:url" content="https://bcollard.github.io/push-to-cdn/">
+<meta name="twitter:card" content="summary">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "pushcdn",
+  "applicationCategory": "DeveloperApplication",
+  "applicationSubCategory": "Command-line tool",
+  "operatingSystem": "macOS, Linux",
+  "url": "https://bcollard.github.io/push-to-cdn/",
+  "downloadUrl": "https://github.com/bcollard/push-to-cdn/releases/latest",
+  "codeRepository": "https://github.com/bcollard/push-to-cdn",
+  "license": "https://opensource.org/licenses/MIT",
+  "description": "A Go CLI that uploads public assets to a Google Cloud Storage bucket fronted by a load balancer and Cloud CDN.",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Baptiste Collard", "url": "https://github.com/bcollard" }
+}
+</script>
+
+<!-- Everything is inline. No external fonts, scripts, stylesheets or images. -->
+<style>
+  :root {
+    --accent:   #0b5fd1;
+    --accent-d: #084aa3;
+    --ink:      #14161a;
+    --muted:    #566070;
+    --line:     #dbe2ec;
+    --bg:       #f6f9fe;
+    --bg-alt:   #ffffff;
+    --code-bg:  rgba(20, 22, 26, .06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent:   #5aa2ff;
+      --accent-d: #8abdff;
+      --ink:      #e9eef6;
+      --muted:    #9aa6b6;
+      --line:     #2a3342;
+      --bg:       #0f141c;
+      --bg-alt:   #161d28;
+      --code-bg:  rgba(233, 238, 246, .09);
+    }
+  }
+
+  * { box-sizing: border-box }
+
+  body {
+    margin: 0;
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 62rem; margin: 0 auto; padding: 0 1.25rem }
+
+  a { color: var(--accent); text-underline-offset: 2px }
+  a:hover { color: var(--accent-d) }
+
+  code, pre { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace }
+  code { font-size: .875em; background: var(--code-bg); padding: .15em .4em; border-radius: 4px }
+  pre {
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    font-size: .84rem;
+    line-height: 1.6;
+    border: 1px solid var(--line);
+    max-width: 46rem;
+  }
+  pre code { background: none; padding: 0; font-size: inherit }
+
+  .hero { text-align: center; padding: 4.5rem 0 3.5rem; border-bottom: 1px solid var(--line) }
+  .hero img.mark { width: 76px; height: 76px; border-radius: 16px }
+  .hero h1 { font-size: clamp(2.1rem, 5vw, 3rem); margin: 1.1rem 0 .5rem; letter-spacing: -.02em }
+  .tagline {
+    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+    color: var(--muted);
+    max-width: 36rem;
+    margin: 0 auto 2rem;
+  }
+  .cta { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap }
+  .btn {
+    display: inline-block;
+    padding: .7rem 1.35rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: .95rem;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+  }
+  .btn-primary { background: var(--accent); color: #fff }
+  .btn-primary:hover { background: var(--accent-d); border-color: var(--accent-d); color: #fff }
+  .btn-ghost { color: var(--accent); background: transparent }
+  .note { font-size: .85rem; color: var(--muted); margin-top: 1rem }
+
+  section { padding: 3.25rem 0; border-bottom: 1px solid var(--line) }
+  section.alt { background: var(--bg-alt) }
+  h2 { font-size: 1.55rem; margin: 0 0 .5rem; letter-spacing: -.01em }
+  h3 { font-size: 1.05rem; margin: 1.75rem 0 .35rem }
+  .lede { color: var(--muted); margin: 0 0 1.75rem; max-width: 46rem }
+  p { max-width: 46rem }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.5rem 2rem;
+    margin-top: 1.5rem;
+  }
+  .grid h3 { margin-top: 0 }
+  .grid p { margin: 0; font-size: .93rem; color: var(--muted) }
+
+  table { border-collapse: collapse; width: 100%; max-width: 46rem; font-size: .93rem }
+  th, td { text-align: left; padding: .55rem .75rem; border-bottom: 1px solid var(--line); vertical-align: top }
+  th { color: var(--muted); font-weight: 600 }
+
+  dl.faq { max-width: 46rem }
+  dl.faq dt { font-weight: 600; margin-top: 1.5rem }
+  dl.faq dd { margin: .35rem 0 0; color: var(--muted) }
+
+  footer { padding: 2.5rem 0 3.5rem; font-size: .9rem; color: var(--muted); text-align: center }
+  footer a { color: var(--muted) }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="mark" src="img/logo.svg" width="76" height="76" alt="">
+    <h1>pushcdn</h1>
+    <p class="tagline">
+      Upload a file, get a public URL. A small Go CLI that publishes assets to a
+      Google Cloud Storage bucket served through Cloud CDN.
+    </p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#install">Install</a>
+      <a class="btn btn-ghost" href="https://github.com/bcollard/push-to-cdn">Source on GitHub</a>
+    </div>
+    <p class="note">Free and MIT licensed. macOS and Linux, amd64 and arm64.</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>What it is for</h2>
+    <p class="lede">Files that need a stable public URL and nothing else.</p>
+    <p>
+      A logo for an email signature, a resume PDF, an image shared in a chat. They all
+      live in one public bucket behind a custom domain. <code>pushcdn</code> uploads
+      them with sensible headers and prints the URL.
+    </p>
+
+    <div class="grid">
+      <div>
+        <h3>Upload</h3>
+        <p>One or many files, optional destination folder or rename, content type inferred from the extension, progress bar on a terminal.</p>
+      </div>
+      <div>
+        <h3>List with globs</h3>
+        <p>Prefix match or server-side glob such as <code>'*logo*'</code>, so listings stay fast on large buckets.</p>
+      </div>
+      <div>
+        <h3>Delete with confirmation</h3>
+        <p><code>pushcdn rm</code> asks before deleting.</p>
+      </div>
+      <div>
+        <h3>Cache headers</h3>
+        <p>Defaults to <code>public, max-age=3600</code>. Override per upload with <code>--cache-control</code>.</p>
+      </div>
+      <div>
+        <h3>No credentials to manage</h3>
+        <p>Uses Application Default Credentials from <code>gcloud</code>. No token cache, no service account file.</p>
+      </div>
+      <div>
+        <h3>Bucket included</h3>
+        <p>The repository ships the Terraform for the public bucket.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <h3>Homebrew</h3>
+<pre><code>brew tap bcollard/push-to-cdn
+brew install --cask push-to-cdn</code></pre>
+    <h3>Go</h3>
+<pre><code>go install github.com/bcollard/push-to-cdn@latest</code></pre>
+    <h3>Binary</h3>
+    <p>Download an archive from <a href="https://github.com/bcollard/push-to-cdn/releases/latest">GitHub Releases</a> and put <code>pushcdn</code> on your <code>PATH</code>.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Quick start</h2>
+<pre><code># one-time setup
+gcloud auth application-default login
+pushcdn config set bucket   cdn.runlocal.dev
+pushcdn config set base-url https://cdn.runlocal.dev
+
+# upload
+pushcdn upload ~/Pictures/logo.png
+# https://cdn.runlocal.dev/logo.png
+
+# upload into a folder, or rename
+pushcdn upload logo.png -d brand/
+pushcdn upload logo.png -d brand/icon.png
+
+# list, filter, delete, print URL
+pushcdn ls
+pushcdn ls '*logo*'
+pushcdn rm old.png
+pushcdn url logo.png</code></pre>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <h2>Configuration</h2>
+    <p class="lede">Resolution order: environment variable, stored config, built-in default.</p>
+    <table>
+      <thead><tr><th>Key</th><th>Environment variable</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>bucket</code></td><td><code>PUSHCDN_BUCKET</code></td><td>GCS bucket name</td></tr>
+        <tr><td><code>project</code></td><td><code>PUSHCDN_PROJECT</code></td><td>GCP project ID (informational)</td></tr>
+        <tr><td><code>base-url</code></td><td><code>PUSHCDN_BASE_URL</code></td><td>Public URL prefix used when printing URLs</td></tr>
+      </tbody>
+    </table>
+    <p>Stored in <code>~/.config/pushcdn/config.json</code> with mode <code>0600</code>.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>FAQ</h2>
+    <dl class="faq">
+      <dt>Are uploaded files private?</dt>
+      <dd>No. The bucket grants <code>roles/storage.objectViewer</code> to <code>allUsers</code>. Everything in it is public. Do not upload anything sensitive.</dd>
+
+      <dt>Can I use my own bucket and domain?</dt>
+      <dd>Yes. Set <code>bucket</code> and <code>base-url</code>. The Terraform in the repository creates the bucket. The load balancer and DNS are separate.</dd>
+
+      <dt>Why does the bucket name need domain verification?</dt>
+      <dd>GCS only allows dotted bucket names such as <code>cdn.runlocal.dev</code> after you verify domain ownership in Google Search Console. A hyphenated name such as <code>cdn-runlocal-dev</code> avoids that step.</dd>
+
+      <dt>How do I change an object that is already cached?</dt>
+      <dd>Cloud CDN honors <code>Cache-Control</code>. Upload with a short <code>--cache-control</code> value, or upload under a new name.</dd>
+    </dl>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a href="https://github.com/bcollard/push-to-cdn">GitHub</a> ·
+    <a href="https://github.com/bcollard/push-to-cdn/releases">Releases</a> ·
+    <a href="https://github.com/bcollard/push-to-cdn/blob/main/LICENSE">MIT license</a>
+    <p style="margin:.75rem auto 0">By <a href="https://github.com/bcollard">Baptiste Collard</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
